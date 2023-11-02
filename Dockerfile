@@ -1,23 +1,18 @@
-# Use an official Node.js runtime as a parent image
-FROM node:20
+# Stage 0 - Build Frontend Assets
+FROM node:12.16.3-alpine as build
 
-# Set the working directory in the container
 WORKDIR /app
-
-# Copy package.json and package-lock.json to the working directory
 COPY package*.json ./
-
-# Install project dependencies
 RUN npm install
-
-# Copy the entire project directory into the container
 COPY . .
-
-# Build the React app (you can customize this command if needed)
 RUN npm run build
 
-# Expose the port on which the app will run (typically 3000)
-EXPOSE 3000
+# Stage 1 - Serve Frontend Assets
+FROM fholzer/nginx-brotli:v1.12.2
 
-# Define the command to start the app (modify as per your app's setup)
-CMD ["npm", "start"]
+WORKDIR /etc/nginx
+ADD nginx.conf /etc/nginx/nginx.conf
+
+COPY --from=build /app/build /usr/share/nginx/html
+EXPOSE 443
+CMD ["nginx", "-g", "daemon off;"]
